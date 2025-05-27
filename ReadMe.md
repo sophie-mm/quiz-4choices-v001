@@ -3,8 +3,9 @@
 
 ## 使い方
 1.ブラウザで.htmlを開く
-2.GoogleSpreadSheetを公開し、URLをコピー
+2.GoogleSpreadSheetを、CSVで公開し（※）、URLをコピー
 3.アプリの".html"の所定欄に貼り付け
 4.URLの"最後の/pubhtml～"を「pub?output=csv」に変更
 
-End
+※「ファイル」→「共有」→ファイル名を選択、「ウェブページ」→「カンマ区切り形式」を選択して、「ウェブに公開」を選択</li>
+以上	
