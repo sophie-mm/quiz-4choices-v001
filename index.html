@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets連携 英単語クイズ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .setup-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #10b981, #059669);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status.loading {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fbbf24;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+        
+        .quiz-section {
+            display: none;
+        }
+        
+        .quiz-section.active {
+            display: block;
+        }
+        
+        .question-container {
+            margin-bottom: 30px;
+            padding: 25px;
+            border-left: 5px solid #667eea;
+            background: #f8f9ff;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .question-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .question-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        
+        .sentence {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e7ff;
+        }
+        
+        .blank {
+            background: #fef3c7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #92400e;
+        }
+        
+        .info-section {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .meaning, .pronunciation {
+            background: #667eea;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .pronunciation {
+            background: #764ba2;
+        }
+        
+        .choices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .choice {
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .choice:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-1px);
+        }
+        
+        .choice.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .choice.correct {
+            border-color: #10b981;
+            background: #10b981;
+            color: white;
+        }
+        
+        .choice.incorrect {
+            border-color: #ef4444;
+            background: #ef4444;
+            color: white;
+        }
+        
+        .result {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .explanation {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-radius: 8px;
+            border-left: 4px solid #0891b2;
+            display: none;
+        }
+        
+        .explanation.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .instructions {
+            background: #e0f2fe;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #0891b2;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #0c4a6e;
+        }
+        
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 600px) {
+            .choices {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .meaning, .pronunciation {
+                min-width: auto;
+            }
+            
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+		body {
+    		padding: 10px;
+		}
+
+		.sentence {
+		    font-size: 1em;
+    		padding: 10px;
+		}
+
+		.choice {
+    		font-size: 0.95em;
+    		padding: 10px;
+		}
+
+		.result {
+    		font-size: 1.1em;
+    		padding: 15px;
+		}
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Google Sheets連携クイズ</h1>
+            <p>スプレッドシートから自動で問題を生成します</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>🔧 設定手順</h3>
+            <ol>
+                <li>Google Sheetsでスプレッドシートを作成し、A列:英単語、B列:品詞、C列:発音、D列:日本語訳、E列:例文を入力</li>
+                <li>「ファイル」→「共有」→「ウェブに公開」を選択</li>
+                <li>「リンク」タブで「CSV」形式を選択してURLをコピー</li>
+                <li>下記にURLを貼り付けて「データ読み込み」をクリック</li>
+                <li>問題数と難易度を設定して「クイズ開始」をクリック</li>
+            </ol>
+        </div>
+        
+        <div class="setup-section">
+            <div class="input-group">
+                <label for="spreadsheetUrl">Google Sheets CSV URL:</label>
+                <input type="url" id="spreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0">
+            </div>
+            
+            <div class="settings-grid">
+                <div class="input-group">
+                    <label for="questionCount">問題数:</label>
+                    <select id="questionCount">
+                        <option value="5">5問</option>
+                        <option value="10" selected>10問</option>
+                        <option value="15">15問</option>
+                        <option value="20">20問</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="partOfSpeech">品詞フィルター:</label>
+                    <select id="partOfSpeech">
+                        <option value="all">全て</option>
+                        <option value="noun">名詞</option>
+                        <option value="verb">動詞</option>
+                        <option value="adj">形容詞</option>
+                        <option value="adv">副詞</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="loadSpreadsheetData()">📥 データ読み込み</button>
+                <button class="btn btn-secondary" onclick="startQuiz()" disabled id="startBtn">🎯 クイズ開始</button>
+            </div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div id="quiz-section" class="quiz-section">
+            <div id="quiz-container"></div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" onclick="checkAnswers()" id="submitBtn">📋 答え合わせ</button>
+                <button class="btn btn-secondary" onclick="resetQuiz()" style="margin-left: 10px;">🔄 新しいクイズ</button>
+            </div>
+            <div id="result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        let vocabularyData = [];
+        let currentQuestions = [];
+        let userAnswers = {};
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        async function loadSpreadsheetData() {
+            const url = document.getElementById('spreadsheetUrl').value.trim();
+            
+            if (!url) {
+                showStatus('URLを入力してください', 'error');
+                return;
+            }
+            
+            // URLの形式をチェックして修正提案
+            if (url.includes('pubhtml')) {
+                showStatus('URLの形式が正しくありません。「pubhtml以降」を「pub?output=csv」に変更してください', 'error');
+                return;
+            }
+            
+            showStatus('データを読み込み中...', 'loading');
+            
+            try {
+                // CORSプロキシを使用してGoogle SheetsのCSVにアクセス
+                const corsProxies = [
+                    'https://cors-anywhere.herokuapp.com/',
+                    'https://api.allorigins.win/raw?url=',
+                    'https://corsproxy.io/?'
+                ];
+                
+                let response;
+                let csvText;
+                
+                // 直接アクセスを試行
+                try {
+                    response = await fetch(url);
+                    if (response.ok) {
+                        csvText = await response.text();
+                    } else {
+                        throw new Error('Direct access failed');
+                    }
+                } catch (directError) {
+                    console.log('Direct access failed, trying CORS proxy...');
+                    
+                    // CORSプロキシを使用
+                    let proxySuccess = false;
+                    for (const proxy of corsProxies) {
+                        try {
+                            const proxyUrl = proxy + encodeURIComponent(url);
+                            response = await fetch(proxyUrl);
+                            if (response.ok) {
+                                csvText = await response.text();
+                                proxySuccess = true;
+                                break;
+                            }
+                        } catch (proxyError) {
+                            console.log(`Proxy ${proxy} failed:`, proxyError);
+                        }
+                    }
+                    
+                    if (!proxySuccess) {
+                        throw new Error('CORSエラー: スプレッドシートへのアクセスがブロックされました。シートの共有設定を確認してください。');
+                    }
+                }
+                
+                // HTMLが返された場合の検出
+                if (csvText.trim().startsWith('<!DOCTYPE') || csvText.trim().startsWith('<html')) {
+                    throw new Error('CSVではなくHTMLが返されました。URLの形式を確認してください（pub?output=csv を使用）');
+                }
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: false,
+                    complete: function(results) {
+                        console.log('Parse results:', results);
+                        
+                        if (results.errors.length > 0) {
+                            showStatus('CSVの解析中にエラーが発生しました: ' + results.errors[0].message, 'error');
+                            console.error('Parse errors:', results.errors);
+                            return;
+                        }
+                        
+                        if (!results.data || results.data.length === 0) {
+                            showStatus('データが空です', 'error');
+                            return;
+                        }
+                        
+                        // ヘッダーの確認
+                        const firstRow = results.data[0];
+                        console.log('First row headers:', Object.keys(firstRow));
+                        
+                        // 柔軟なヘッダーマッピング
+                        vocabularyData = results.data.map(row => {
+                            const keys = Object.keys(row);
+                            return {
+                                word: (row['English Word'] || row[keys[0]] || '').toString().trim(),
+                                pos: (row['Part of Speech'] || row[keys[1]] || '').toString().trim(),
+                                pronunciation: (row['Pronunciation'] || row[keys[2]] || '').toString().trim(),
+                                meaning: (row['Meaning (Japanese)'] || row[keys[3]] || '').toString().trim(),
+                                example: (row['Example Sentence (English)'] || row[keys[4]] || '').toString().trim()
+                            };
+                        }).filter(item => item.word && item.meaning && item.example);
+                        
+                        if (vocabularyData.length === 0) {
+                            showStatus('有効なデータが見つかりませんでした。列の形式を確認してください', 'error');
+                            console.log('Sample data:', results.data.slice(0, 3));
+                            return;
+                        }
+                        
+                        showStatus(`${vocabularyData.length}件のデータを読み込みました`, 'success');
+                        document.getElementById('startBtn').disabled = false;
+                    }
+                });
+                
+            } catch (error) {
+                showStatus('データの読み込みに失敗しました: ' + error.message, 'error');
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        function getWordVariations(word, pos) {
+            const variations = [word];
+            
+            if (pos.includes('V')) {
+                // 動詞の活用形を生成
+                if (word.endsWith('e')) {
+                    variations.push(word + 'd', word + 's', word.slice(0, -1) + 'ing');
+                } else if (word.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(word[word.length - 2])) {
+                    variations.push(word.slice(0, -1) + 'ied', word.slice(0, -1) + 'ies', word + 'ing');
+                } else if (word.match(/[bcdfghjklmnpqrstvwxyz]$/)) {
+                    const lastChar = word[word.length - 1];
+                    if (['p', 'g', 't', 'd', 'm', 'n'].includes(lastChar)) {
+                        variations.push(word + lastChar + 'ed', word + 's', word + lastChar + 'ing');
+                    } else {
+                        variations.push(word + 'ed', word + 's', word + 'ing');
+                    }
+                } else {
+                    variations.push(word + 'ed', word + 's', word + 'ing');
+                }
+            }
+            
+            return variations;
+        }
+        
+        function findWordInSentence(sentence, word, pos) {
+            const variations = getWordVariations(word, pos);
+            const words = sentence.toLowerCase().split(/\W+/);
+            
+            for (const variation of variations) {
+                if (words.includes(variation.toLowerCase())) {
+                    return variation;
+                }
+            }
+            
+            return word;
+        }
+        
+        function createSentenceWithBlank(sentence, word, pos) {
+            const actualWord = findWordInSentence(sentence, word, pos);
+            const regex = new RegExp(`\\b${actualWord}\\b`, 'gi');
+            return {
+                sentence: sentence.replace(regex, '_______'),
+                correctAnswer: actualWord
+            };
+        }
+        
+        function filterByPartOfSpeech(data, filter) {
+            if (filter === 'all') return data;
+            
+            const posMap = {
+                'noun': ['N(C)', 'N(U)', 'N(the + pl.)', 'N(C/U)'],
+                'verb': ['V(vt)', 'V(vi)', 'V(vi/vt)', 'V(vt/vi)'],
+                'adj': ['Adj'],
+                'adv': ['Adv']
+            };
+            
+            return data.filter(item => {
+                const itemPos = item.pos.split('/');
+                return itemPos.some(pos => 
+                    posMap[filter] && posMap[filter].some(p => pos.includes(p))
+                );
+            });
+        }
+        
+        function generateChoices(correctAnswer, allData, pos, count = 4) {
+            const choices = [correctAnswer];
+            const samePosWords = allData.filter(item => 
+                item.pos === pos && item.word !== correctAnswer.split(/\s+/)[0]
+            );
+            
+            while (choices.length < count && samePosWords.length > 0) {
+                const randomIndex = Math.floor(Math.random() * samePosWords.length);
+                const randomWord = samePosWords[randomIndex].word;
+                
+                if (!choices.includes(randomWord)) {
+                    choices.push(randomWord);
+                }
+                samePosWords.splice(randomIndex, 1);
+            }
+            
+            // シャッフル
+            for (let i = choices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [choices[i], choices[j]] = [choices[j], choices[i]];
+            }
+            
+            return choices;
+        }
+        
+        function startQuiz() {
+            const questionCount = parseInt(document.getElementById('questionCount').value);
+            const posFilter = document.getElementById('partOfSpeech').value;
+            
+            const filteredData = filterByPartOfSpeech(vocabularyData, posFilter);
+            
+            if (filteredData.length < questionCount) {
+                showStatus(`選択した条件では${filteredData.length}問しか作成できません`, 'error');
+                return;
+            }
+            
+            // ランダムに問題を選択
+            const shuffled = [...filteredData].sort(() => Math.random() - 0.5);
+            const selectedData = shuffled.slice(0, questionCount);
+            
+            currentQuestions = selectedData.map((item, index) => {
+                const { sentence, correctAnswer } = createSentenceWithBlank(item.example, item.word, item.pos);
+                const choices = generateChoices(correctAnswer, vocabularyData, item.pos);
+                
+                return {
+                    id: index + 1,
+                    sentence: sentence,
+                    meaning: item.meaning,
+                    pronunciation: item.pronunciation,
+                    choices: choices,
+                    correctAnswer: correctAnswer,
+                    originalWord: item.word
+                };
+            });
+            
+            renderQuiz();
+            document.getElementById('quiz-section').classList.add('active');
+            hideStatus();
+            userAnswers = {};
+        }
+        
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = '';
+            
+            currentQuestions.forEach(question => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-container';
+                questionDiv.innerHTML = `
+                    <div class="question-number">Question ${question.id}</div>
+                    <div class="sentence">${question.sentence}</div>
+                    <div class="info-section">
+                        <div class="meaning">${question.meaning}</div>
+                        <div class="pronunciation">${question.pronunciation}</div>
+                    </div>
+                    <div class="choices">
+                        ${question.choices.map(choice => 
+                            `<div class="choice" data-question="${question.id}" data-answer="${choice}" onclick="selectChoice(${question.id}, '${choice}')">${choice}</div>`
+                        ).join('')}
+                    </div>
+                    <div class="explanation" id="explanation-${question.id}">
+                        <strong>正解:</strong> ${question.correctAnswer}<br>
+                        <strong>原形:</strong> ${question.originalWord}<br>
+                        <strong>意味:</strong> ${question.meaning}
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+        }
+        
+        function selectChoice(questionId, answer) {
+            userAnswers[questionId] = answer;
+            
+            // 選択状態を更新
+            const choices = document.querySelectorAll(`[data-question="${questionId}"]`);
+            choices.forEach(choice => {
+                choice.classList.remove('selected');
+                if (choice.dataset.answer === answer) {
+                    choice.classList.add('selected');
+                }
+            });
+        }
+        
+        function checkAnswers() {
+            let correct = 0;
+            
+            currentQuestions.forEach(question => {
+                const userAnswer = userAnswers[question.id];
+                const isCorrect = userAnswer === question.correctAnswer;
+                
+                if (isCorrect) correct++;
+                
+                // 結果を表示
+                const choices = document.querySelectorAll(`[data-question="${question.id}"]`);
+                choices.forEach(choice => {
+                    const answer = choice.dataset.answer;
+                    choice.classList.remove('selected');
+                    
+                    if (answer === question.correctAnswer) {
+                        choice.classList.add('correct');
+                    } else if (answer === userAnswer && !isCorrect) {
+                        choice.classList.add('incorrect');
+                    }
+                });
+                
+                // 解説を表示
+                document.getElementById(`explanation-${question.id}`).classList.add('show');
+            });
+            
+            // 結果を表示
+            const percentage = Math.round((correct / currentQuestions.length) * 100);
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                🎯 結果: ${correct}/${currentQuestions.length}問正解 (${percentage}%)
+                <br>
+                ${percentage >= 80 ? '🎉 優秀です！' : percentage >= 60 ? '👍 良い結果です！' : '📚 もう少し頑張りましょう！'}
+            `;
+            resultDiv.style.display = 'block';
+            
+            document.getElementById('submitBtn').disabled = true;
+        }
+        
+        function resetQuiz() {
+            document.getElementById('quiz-section').classList.remove('active');
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+            userAnswers = {};
+            currentQuestions = [];
+        }
+    </script>
+</body>
+</html>
